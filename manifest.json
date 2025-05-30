@@ -1,0 +1,9 @@
+{
+    "name": "点字ブロック案内アプリ",
+    "short_name": "点字案内",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "description": "GPSで最寄りの点字ブロックを案内します"
+  }
+  

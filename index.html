@@ -1,0 +1,16 @@
+<!DOCTYPE html> <!--HTMLドキュメントであることを宣言-->
+<html lang="ja"> <!-- ページの言語を日本語に設定-->
+<head>
+  <meta charset="UTF-8" /> <!--文字コードをUTF-8に設定-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!--モバイル対応(レスポンシブ)-->
+  <title>点字ブロック案内</title>
+  <link rel="manifest" href="manifest.json"> <!--PWA対応のマニフェストファイルを読み込む-->
+</head>
+<body>
+  <h1>現在位置と案内</h1> <!-- タイトル表示 -->
+  <p id="status">位置取得中...</p> <!-- 現在のGPS取得ステータス表示 -->
+  <p id="result"></p> <!-- サーバーからの案内メッセージ表示用 -->
+
+  <script src="app.js"></script> <!-- メインのJavaScriptを読み込む -->
+</body>
+</html>
