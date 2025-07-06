@@ -41,16 +41,21 @@ function getPositionAndSend() {
 
     // GETリクエスト送信（サーバーから方角とブロック名を取得）
     const url = `https://codedbb.com/tenji/get_near_block.py?lat=${lat}&lng=${lng}&mode=message`;
+    //テスト用URL
+    //const url = `http://localhost:8080/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
     console.log("→ fetch URL:", url);
 
     try {
       const res = await fetch(url);
       const data = await res.json();  // 返り値がJSONの場合
       const direction = data.direction; // 例: "north"
-      const blockName = data.block_name;
+
+      const blockName = data.name;
+      const distance = data.distance;
 
       const relativeDir = convertToRelativeDirection(direction, heading);
-      document.getElementById("result").textContent = `${relativeDir}に${blockName}があります`;
+      document.getElementById("result").textContent = `${relativeDir}に${data.name}があります（約${data.distance}m）`;
+
     } catch (err) {
       document.getElementById("result").textContent = "通信エラー";
       console.error("APIエラー:", err);
