@@ -8,6 +8,7 @@ from lib import connections
 import lib.orm_blockdata as blockdata
 
 
+# ---------- DBから最寄りのブロックを取得 ----------
 def near_block(lat, lng, category="", limit=10):
     if category == "":
         sql = f"""
@@ -38,6 +39,7 @@ def near_block(lat, lng, category="", limit=10):
     return result
 
 
+# ---------- 直線距離を計算 ----------
 def calc_distance(current_lat, current_lng, target_lat, target_lng):
     from geopy.distance import geodesic
     current_pos = (current_lat, current_lng)
@@ -45,6 +47,7 @@ def calc_distance(current_lat, current_lng, target_lat, target_lng):
     return geodesic(current_pos, target_pos).m
 
 
+# ---------- 方角（角度）を計算 ----------
 def calc_direction(current_lat, current_lng, target_lat, target_lng):
     from math import radians, sin, cos, atan2, degrees
     lat1 = radians(float(current_lat))
@@ -60,7 +63,7 @@ def calc_direction(current_lat, current_lng, target_lat, target_lng):
     return angle_deg
 
 
-# 日本語ではなく英語の方位を返すよう変更
+# ---------- 方位角を英語の方角に変換 ----------
 def to_english_8direction(deg):
     if deg < 22.5 or deg >= 337.5:
         return "north"
@@ -80,7 +83,7 @@ def to_english_8direction(deg):
         return "northwest"
 
 
-# URLパラメータ取得
+# ---------- URLパラメータ取得 ----------
 form = cgi.FieldStorage()
 mode     = form.getvalue("mode",      default="message")
 lat      = form.getvalue("lat",       default="")
@@ -88,15 +91,19 @@ lng      = form.getvalue("lng",       default="")
 category = form.getvalue("category",  default="")
 n        = form.getvalue("n",         default="1")
 
-# SQLインジェクション対策
-for param in [lat, lng, category, n]:
-    if ";" in param:
-        param = param.replace(";", "")
+# ---------- SQLインジェクション対策 ----------
+def sanitize(param):
+    return param.replace(";", "") if param else ""
 
-# 緯度経度があれば処理
+lat = sanitize(lat)
+lng = sanitize(lng)
+category = sanitize(category)
+n = sanitize(n)
+
+# ---------- 緯度経度があれば処理 ----------
 if lat and lng:
     if mode == "message":
-        n = 1
+        n = "1"  # 強制的に1件だけ取得
 
     blocks = near_block(lat, lng, category, n)
 
@@ -113,23 +120,26 @@ if lat and lng:
             "name"          : record['name'],
             "distance"      : calc_distance(lat, lng, record['latitude'], record['longitude']),
             "direction"     : direction,
-            "direction8"    : to_english_8direction(direction)  # ★変更ポイント：英語で方角を返す
+            "direction8"    : to_english_8direction(direction)
         }
         blocks_list.append(record_dict)
 
+    # ---------- messageモード：相対方向変換用JSONを返す ----------
     if mode == "message":
         record = blocks_list[0]
         print("Content-Type: application/json\n")
         print(json.dumps({
-            "direction": record["direction8"],  # ★app.js 側で相対方向に変換するためこの形式で返す
+            "direction": record["direction8"],
             "name": record["name"],
             "distance": round(record["distance"], 1)
         }, ensure_ascii=False))
 
+    # ---------- jsonモード：すべての情報を返す ----------
     elif mode == "json":
         print("Content-Type: application/json\n")
         print(json.dumps(blocks_list, ensure_ascii=False))
 
+# ---------- 緯度経度がない場合 ----------
 else:
     print("Content-Type: application/json\n")
     print(json.dumps({"error": "Missing lat/lng"}, ensure_ascii=False))
