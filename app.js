@@ -40,21 +40,19 @@ function getPositionAndSend() {
     prevHeading = heading;
 
     // GETリクエスト送信（サーバーから方角とブロック名を取得）
-    const url = `https://codedbb.com/tenji/get_near_block.py?lat=${lat}&lng=${lng}&mode=message`;
-    //テスト用URL
-    //const url = `http://localhost:8080/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
+    const url = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
     console.log("→ fetch URL:", url);
 
     try {
       const res = await fetch(url);
-      const data = await res.json();  // 返り値がJSONの場合
-      const direction = data.direction; // 例: "north"
-
+      const data = await res.json();
+      const direction = data.direction;
       const blockName = data.name;
       const distance = data.distance;
 
       const relativeDir = convertToRelativeDirection(direction, heading);
-      document.getElementById("result").textContent = `${relativeDir}に${data.name}があります（約${data.distance}m）`;
+      document.getElementById("result").textContent =
+        `${relativeDir}に${blockName}があります（約${distance}m）`;
 
     } catch (err) {
       document.getElementById("result").textContent = "通信エラー";
@@ -65,15 +63,19 @@ function getPositionAndSend() {
   });
 }
 
-// 絶対方角（northなど）を進行方向から見た相対方向に変換
+// 8方向に対応した相対方向への変換
 function convertToRelativeDirection(targetDirection, heading) {
-  if (heading === null) return targetDirection; // 初回など
+  if (heading === null) return targetDirection;
 
   const directions = {
     "north": 0,
+    "northeast": 45,
     "east": 90,
+    "southeast": 135,
     "south": 180,
-    "west": 270
+    "southwest": 225,
+    "west": 270,
+    "northwest": 315
   };
 
   const targetAngle = directions[targetDirection];
@@ -81,8 +83,12 @@ function convertToRelativeDirection(targetDirection, heading) {
 
   const angleDiff = (targetAngle - heading + 360) % 360;
 
-  if (angleDiff < 45 || angleDiff >= 315) return "前";
-  if (angleDiff < 135) return "右";
-  if (angleDiff < 225) return "後ろ";
-  return "左";
+  if (angleDiff < 22.5 || angleDiff >= 337.5) return "前";
+  if (angleDiff < 67.5) return "右前";
+  if (angleDiff < 112.5) return "右";
+  if (angleDiff < 157.5) return "右後ろ";
+  if (angleDiff < 202.5) return "後ろ";
+  if (angleDiff < 247.5) return "左後ろ";
+  if (angleDiff < 292.5) return "左";
+  return "左前";
 }
