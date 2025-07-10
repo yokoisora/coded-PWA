@@ -24,11 +24,16 @@ function getPositionAndSend() {
       heading = (angle + 360) % 360;
     }
 
-    // 停止しているかどうか判定
+    // 停止しているかどうか判定 + 進行方向の表示
     let movementStatus = "";
     if (prevLat !== null && prevLng !== null) {
       const distance = Math.sqrt(Math.pow(lat - prevLat, 2) + Math.pow(lng - prevLng, 2));
-      movementStatus = distance < 0.00001 ? "動いていません" : `緯度: ${lat}, 経度: ${lng}`;
+      if (distance < 0.00001) {
+        movementStatus = "動いていません";
+      } else {
+        const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
+        movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
+      }
     } else {
       movementStatus = `緯度: ${lat}, 経度: ${lng}`;
     }
@@ -91,4 +96,16 @@ function convertToRelativeDirection(targetDirection, heading) {
   if (angleDiff < 247.5) return "左後ろ";
   if (angleDiff < 292.5) return "左";
   return "左前";
+}
+
+// 角度を日本語の8方位に変換
+function getHeadingDirection8(deg) {
+  if (deg < 22.5 || deg >= 337.5) return "北";
+  if (deg < 67.5) return "北東";
+  if (deg < 112.5) return "東";
+  if (deg < 157.5) return "南東";
+  if (deg < 202.5) return "南";
+  if (deg < 247.5) return "南西";
+  if (deg < 292.5) return "西";
+  return "北西";
 }
