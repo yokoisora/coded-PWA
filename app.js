@@ -9,7 +9,7 @@ window.addEventListener('deviceorientation', (event) => {
   // `event.alpha`は北を基準とした方位角（0〜360度）
   if (event.alpha !== null) {
     // 方位角を180度補正して使用
-    currentHeading = (event.alpha + 270) % 360;
+    currentHeading = (event.alpha + 180) % 360;
   }
 });
 
