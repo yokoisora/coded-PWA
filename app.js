@@ -8,7 +8,8 @@ let isMoving = false; // 動いているかどうかを判定する変数
 window.addEventListener('deviceorientation', (event) => {
   // `event.alpha`は北を基準とした方位角（0〜360度）
   if (event.alpha !== null) {
-    currentHeading = event.alpha.toFixed(1); // 方位角をそのまま使用するように修正
+    // 方位角を90度補正して使用
+    currentHeading = (event.alpha + 90) % 360;
   }
 });
 
