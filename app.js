@@ -39,7 +39,7 @@ function getPositionAndSend() {
 
     // GPSによる進行方向の検出（コメントアウト）
     let heading = currentHeading;
-    
+
     /*
     let heading = null;
     if (prevLat !== null && prevLng !== null) {
@@ -52,12 +52,10 @@ function getPositionAndSend() {
 
     // 停止しているかどうか判定 + 進行方向の表示
     let movementStatus = "";
-    if (isMoving === false) {
-      movementStatus = "動いていません";
-    } else {
-      const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
-      movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
-    }
+    // isMovingの判定に関わらず、常に進行方向を表示するように修正
+    const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
+    movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
+    
     document.getElementById("status").textContent = movementStatus;
 
     // 過去位置を更新
