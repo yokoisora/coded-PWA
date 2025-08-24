@@ -1,6 +1,28 @@
 let prevLat = null;
 let prevLng = null;
 let prevHeading = null;
+let currentHeading = null; // 現在の進行方向を格納する変数
+let isMoving = false; // 動いているかどうかを判定する変数
+
+// デバイスの向き情報（コンパス）を取得
+window.addEventListener('deviceorientation', (event) => {
+  // `event.alpha`は北を基準とした方位角（0〜360度）
+  if (event.alpha !== null) {
+    currentHeading = (360 - event.alpha).toFixed(1); // 方位角を0〜360の範囲で調整
+  }
+});
+
+// デバイスの動き情報（加速度）を取得
+window.addEventListener('devicemotion', (event) => {
+  const acceleration = event.accelerationIncludingGravity;
+  // わずかな動きを無視するために閾値を設定
+  const threshold = 0.5;
+  if (acceleration.x > threshold || acceleration.y > threshold || acceleration.z > threshold) {
+    isMoving = true;
+  } else {
+    isMoving = false;
+  }
+});
 
 // 一定間隔で位置情報を取得して送信
 setInterval(getPositionAndSend, 5000);
@@ -15,7 +37,10 @@ function getPositionAndSend() {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
 
-    // 進行方向の検出
+    // GPSによる進行方向の検出（コメントアウト）
+    let heading = currentHeading;
+    
+    /*
     let heading = null;
     if (prevLat !== null && prevLng !== null) {
       const dy = lat - prevLat;
@@ -23,19 +48,15 @@ function getPositionAndSend() {
       const angle = Math.atan2(dy, dx) * (180 / Math.PI); // ラジアン→度
       heading = (angle + 360) % 360;
     }
+    */
 
     // 停止しているかどうか判定 + 進行方向の表示
     let movementStatus = "";
-    if (prevLat !== null && prevLng !== null) {
-      const distance = Math.sqrt(Math.pow(lat - prevLat, 2) + Math.pow(lng - prevLng, 2));
-      if (distance < 0.00001) {
-        movementStatus = "動いていません";
-      } else {
-        const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
-        movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
-      }
+    if (isMoving === false) {
+      movementStatus = "動いていません";
     } else {
-      movementStatus = `緯度: ${lat}, 経度: ${lng}`;
+      const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
+      movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
     }
     document.getElementById("status").textContent = movementStatus;
 
