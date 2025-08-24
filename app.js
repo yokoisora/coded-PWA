@@ -37,22 +37,11 @@ function getPositionAndSend() {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
 
-    // GPSによる進行方向の検出（コメントアウト）
+    // 進行方向として、コンパスで取得した現在の向き情報を常に使用
     let heading = currentHeading;
 
-    /*
-    let heading = null;
-    if (prevLat !== null && prevLng !== null) {
-      const dy = lat - prevLat;
-      const dx = lng - prevLng;
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI); // ラジアン→度
-      heading = (angle + 360) % 360;
-    }
-    */
-
-    // 停止しているかどうか判定 + 進行方向の表示
+    // 進行方向の表示を更新
     let movementStatus = "";
-    // isMovingの判定に関わらず、常に進行方向を表示するように修正
     const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
     movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
     
