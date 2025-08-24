@@ -8,7 +8,7 @@ let isMoving = false; // 動いているかどうかを判定する変数
 window.addEventListener('deviceorientation', (event) => {
   // `event.alpha`は北を基準とした方位角（0〜360度）
   if (event.alpha !== null) {
-    currentHeading = (360 - event.alpha).toFixed(1); // 方位角を0〜360の範囲で調整
+    currentHeading = event.alpha.toFixed(1); // 方位角をそのまま使用するように修正
   }
 });
 
@@ -39,6 +39,17 @@ function getPositionAndSend() {
 
     // 進行方向として、コンパスで取得した現在の向き情報を常に使用
     let heading = currentHeading;
+    
+    // GPSによる進行方向の検出（コメントアウト）
+    /*
+    let heading = null;
+    if (prevLat !== null && prevLng !== null) {
+      const dy = lat - prevLat;
+      const dx = lng - prevLng;
+      const angle = Math.atan2(dy, dx) * (180 / Math.PI); // ラジアン→度
+      heading = (angle + 360) % 360;
+    }
+    */
 
     // 進行方向の表示を更新
     let movementStatus = "";
