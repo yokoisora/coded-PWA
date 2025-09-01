@@ -22,7 +22,7 @@ const handleDeviceOrientation = (event) => {
   let angle = window.orientation || 0;
   
   if (alpha !== null) {
-      currentHeading = (alpha + angle) % 360;
+      currentHeading = (360 - alpha) % 360; // 東と西が逆になる問題を修正
   }
 };
 
