@@ -3,13 +3,20 @@ let prevLng = null;
 let prevHeading = null;
 let currentHeading = null; // 現在の進行方向を格納する変数
 let isMoving = false; // 動いているかどうかを判定する変数
+let intervalId = null; // setIntervalのIDを格納する変数
 
 // デバイスの向き情報（コンパス）を取得
 window.addEventListener('deviceorientation', (event) => {
-  // `event.alpha`は北を基準とした方位角（0〜360度）
-  if (event.alpha !== null) {
-    // 方位角を反転させて使用
-    currentHeading = ((360 - event.alpha ) + 90) % 360;
+  // 画面の向きを考慮して方位角を計算
+  let alpha = event.alpha;
+  let angle = screen.orientation.angle;
+  if (alpha !== null) {
+      currentHeading = (alpha + angle) % 360;
+  }
+  
+  // 初めてコンパスデータが取得されたら、位置情報送信を開始
+  if (intervalId === null) {
+    intervalId = setInterval(getPositionAndSend, 5000);
   }
 });
 
@@ -24,9 +31,6 @@ window.addEventListener('devicemotion', (event) => {
     isMoving = false;
   }
 });
-
-// 一定間隔で位置情報を取得して送信
-setInterval(getPositionAndSend, 5000);
 
 function getPositionAndSend() {
   if (!navigator.geolocation) {
@@ -54,7 +58,7 @@ function getPositionAndSend() {
 
     // 進行方向の表示を更新
     let movementStatus = "";
-    const headingDirection = heading !== null ? getHeadingDirection8(heading) : "";
+    const headingDirection = getHeadingDirection8(heading);
     movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
     
     document.getElementById("status").textContent = movementStatus;
@@ -120,6 +124,9 @@ function convertToRelativeDirection(targetDirection, heading) {
 
 // 角度を日本語の8方位に変換
 function getHeadingDirection8(deg) {
+  if (deg === null) {
+      return "コンパスを調整中";
+  }
   if (deg < 22.5 || deg >= 337.5) return "北";
   if (deg < 67.5) return "北東";
   if (deg < 112.5) return "東";
