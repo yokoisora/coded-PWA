@@ -14,29 +14,53 @@ const notificationSound = new Audio('ping_1.mp3');
 const startButton = document.getElementById('startButton');
 const startScreen = document.getElementById('start-screen');
 const mainContent = document.getElementById('main-content');
-
-// 開始ボタンのクリックイベント
-startButton.addEventListener('click', () => {
-    // 画面を切り替える
-    startScreen.style.display = 'none';
-    mainContent.style.display = 'block';
-
-    // ユーザー操作後にGPSとコンパスデータの取得を開始
-    intervalId = setInterval(getPositionAndSend, 5000);
-});
+const statusText = document.getElementById('status');
 
 // デバイスの向き情報（コンパス）を取得
-window.addEventListener('deviceorientation', (event) => {
+const handleDeviceOrientation = (event) => {
   let alpha = event.alpha;
   let angle = window.orientation || 0;
   
   if (alpha !== null) {
       currentHeading = (alpha + angle) % 360;
   }
+};
+
+// 開始ボタンのクリックイベント
+startButton.addEventListener('click', () => {
+    // iOS 13+のSafariでセンサーへのアクセス許可をリクエスト
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    // 許可された場合
+                    startApp();
+                } else {
+                    // 拒否された場合
+                    statusText.textContent = 'コンパス機能を使用するには、設定で権限を許可してください。';
+                }
+            })
+            .catch(console.error);
+    } else {
+        // Androidなど、許可が不要な場合
+        startApp();
+    }
 });
 
+// アプリ起動関数
+function startApp() {
+    startScreen.style.display = 'none';
+    mainContent.style.display = 'block';
+
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+    window.addEventListener('devicemotion', handleDeviceMotion);
+    
+    // ユーザー操作後にGPSとコンパスデータの取得を開始
+    intervalId = setInterval(getPositionAndSend, 5000);
+}
+
 // デバイスの動き情報（加速度）を取得
-window.addEventListener('devicemotion', (event) => {
+const handleDeviceMotion = (event) => {
   const acceleration = event.accelerationIncludingGravity;
   const threshold = 0.5;
   if (acceleration.x > threshold || acceleration.y > threshold || acceleration.z > threshold) {
@@ -44,11 +68,11 @@ window.addEventListener('devicemotion', (event) => {
   } else {
     isMoving = false;
   }
-});
+};
 
 function getPositionAndSend() {
   if (!navigator.geolocation) {
-    document.getElementById("status").textContent = "位置情報に非対応です。";
+    statusText.textContent = "位置情報に非対応です。";
     return;
   }
 
@@ -58,22 +82,11 @@ function getPositionAndSend() {
 
     let heading = currentHeading;
     
-    // GPSによる進行方向の検出（コメントアウト）
-    /*
-    let heading = null;
-    if (prevLat !== null && prevLng !== null) {
-      const dy = lat - prevLat;
-      const dx = lng - prevLng;
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-      heading = (angle + 360) % 360;
-    }
-    */
-
     let movementStatus = "";
     const headingDirection = getHeadingDirection8(heading);
     movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
     
-    document.getElementById("status").textContent = movementStatus;
+    statusText.textContent = movementStatus;
 
     prevLat = lat;
     prevLng = lng;
@@ -91,16 +104,13 @@ function getPositionAndSend() {
 
       const relativeDir = convertToRelativeDirection(direction, heading);
       
-      // 案内情報が変化したかをチェック
       if (relativeDir !== prevRelativeDir || blockName !== prevBlockName) {
-        notificationSound.play(); // 効果音を再生
+        notificationSound.play();
       }
       
-      // 案内情報を画面に表示
       document.getElementById("result").textContent =
         `${relativeDir}に${blockName}があります（約${distance}m）`;
 
-      // 案内情報を更新
       prevRelativeDir = relativeDir;
       prevBlockName = blockName;
 
@@ -109,7 +119,7 @@ function getPositionAndSend() {
       console.error("APIエラー:", err);
     }
   }, (err) => {
-    document.getElementById("status").textContent = `位置情報取得失敗: ${err.message}`;
+    statusText.textContent = `位置情報取得失敗: ${err.message}`;
   });
 }
 
@@ -117,14 +127,8 @@ function convertToRelativeDirection(targetDirection, heading) {
   if (heading === null) return targetDirection;
 
   const directions = {
-    "north": 0,
-    "northeast": 45,
-    "east": 90,
-    "southeast": 135,
-    "south": 180,
-    "southwest": 225,
-    "west": 270,
-    "northwest": 315
+    "north": 0, "northeast": 45, "east": 90, "southeast": 135,
+    "south": 180, "southwest": 225, "west": 270, "northwest": 315
   };
 
   const targetAngle = directions[targetDirection];
