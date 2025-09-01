@@ -8,26 +8,36 @@ let prevRelativeDir = null; // 前回の相対方向を格納する変数
 let prevBlockName = null; // 前回のブロック名を格納する変数
 
 // 効果音の音声ファイルを指定
-const notificationSound = new Audio('ping_1.mp3'); // 'ping.mp3'は実際の音声ファイル名に置き換えてください
+const notificationSound = new Audio('ping_1.mp3');
+
+// ページの要素を取得
+const startButton = document.getElementById('startButton');
+const startScreen = document.getElementById('start-screen');
+const mainContent = document.getElementById('main-content');
+
+// 開始ボタンのクリックイベント
+startButton.addEventListener('click', () => {
+    // 画面を切り替える
+    startScreen.style.display = 'none';
+    mainContent.style.display = 'block';
+
+    // ユーザー操作後にGPSとコンパスデータの取得を開始
+    intervalId = setInterval(getPositionAndSend, 5000);
+});
 
 // デバイスの向き情報（コンパス）を取得
 window.addEventListener('deviceorientation', (event) => {
-  // `event.alpha`の値をそのまま使用するように修正
   let alpha = event.alpha;
-  if (alpha !== null) {
-      currentHeading = alpha;
-  }
+  let angle = window.orientation || 0;
   
-  // 初めてコンパスデータが取得されたら、位置情報送信を開始
-  if (intervalId === null) {
-    intervalId = setInterval(getPositionAndSend, 5000);
+  if (alpha !== null) {
+      currentHeading = (alpha + angle) % 360;
   }
 });
 
 // デバイスの動き情報（加速度）を取得
 window.addEventListener('devicemotion', (event) => {
   const acceleration = event.accelerationIncludingGravity;
-  // わずかな動きを無視するために閾値を設定
   const threshold = 0.5;
   if (acceleration.x > threshold || acceleration.y > threshold || acceleration.z > threshold) {
     isMoving = true;
@@ -46,7 +56,6 @@ function getPositionAndSend() {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
 
-    // 進行方向として、コンパスで取得した現在の向き情報を常に使用
     let heading = currentHeading;
     
     // GPSによる進行方向の検出（コメントアウト）
@@ -60,19 +69,16 @@ function getPositionAndSend() {
     }
     */
 
-    // 進行方向の表示を更新
     let movementStatus = "";
     const headingDirection = getHeadingDirection8(heading);
     movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
     
     document.getElementById("status").textContent = movementStatus;
 
-    // 過去位置を更新
     prevLat = lat;
     prevLng = lng;
     prevHeading = heading;
 
-    // GETリクエスト送信（サーバーから方角とブロック名を取得）
     const url = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
     console.log("→ fetch URL:", url);
 
@@ -107,7 +113,6 @@ function getPositionAndSend() {
   });
 }
 
-// 8方向に対応した相対方向への変換
 function convertToRelativeDirection(targetDirection, heading) {
   if (heading === null) return targetDirection;
 
@@ -137,7 +142,6 @@ function convertToRelativeDirection(targetDirection, heading) {
   return "左前";
 }
 
-// 角度を日本語の8方位に変換
 function getHeadingDirection8(deg) {
   if (deg === null) {
       return "コンパスを調整中";
