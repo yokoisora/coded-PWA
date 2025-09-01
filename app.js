@@ -7,10 +7,12 @@ let intervalId = null; // setIntervalのIDを格納する変数
 
 // デバイスの向き情報（コンパス）を取得
 window.addEventListener('deviceorientation', (event) => {
-  // 画面の向きを考慮して方位角を計算
+  // `event.alpha`は北を基準とした方位角（0〜360度）
   let alpha = event.alpha;
-  let angle = screen.orientation.angle;
+  let angle = window.orientation || 0;
+  
   if (alpha !== null) {
+      // 画面の向きを考慮した補正
       currentHeading = (alpha + angle) % 360;
   }
   
@@ -45,17 +47,6 @@ function getPositionAndSend() {
     // 進行方向として、コンパスで取得した現在の向き情報を常に使用
     let heading = currentHeading;
     
-    // GPSによる進行方向の検出（コメントアウト）
-    /*
-    let heading = null;
-    if (prevLat !== null && prevLng !== null) {
-      const dy = lat - prevLat;
-      const dx = lng - prevLng;
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI); // ラジアン→度
-      heading = (angle + 360) % 360;
-    }
-    */
-
     // 進行方向の表示を更新
     let movementStatus = "";
     const headingDirection = getHeadingDirection8(heading);
