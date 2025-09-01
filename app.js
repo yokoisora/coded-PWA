@@ -22,12 +22,15 @@ const handleDeviceOrientation = (event) => {
   let angle = window.orientation || 0;
   
   if (alpha !== null) {
-      currentHeading = (360 - alpha) % 360; // 東と西が逆になる問題を修正
+      currentHeading = (360 - alpha) % 360;
   }
 };
 
 // 開始ボタンのクリックイベント
 startButton.addEventListener('click', () => {
+    // ユーザーの最初の操作で音を鳴らし、ブラウザに再生を許可させる
+    notificationSound.play().catch(e => console.log('音声再生に失敗:', e));
+    
     // iOS 13+のSafariでセンサーへのアクセス許可をリクエスト
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
