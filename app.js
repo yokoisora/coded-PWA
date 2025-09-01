@@ -8,7 +8,7 @@ let prevRelativeDir = null; // 前回の相対方向を格納する変数
 let prevBlockName = null; // 前回のブロック名を格納する変数
 
 // 効果音の音声ファイルを指定
-const notificationSound = new Audio('ping.mp3'); // 'ping.mp3'は実際の音声ファイル名に置き換えてください
+const notificationSound = new Audio('ping_1.mp3'); // 'ping.mp3'は実際の音声ファイル名に置き換えてください
 
 // デバイスの向き情報（コンパス）を取得
 window.addEventListener('deviceorientation', (event) => {
