@@ -15,6 +15,7 @@ const startButton = document.getElementById('startButton');
 const startScreen = document.getElementById('start-screen');
 const mainContent = document.getElementById('main-content');
 const statusText = document.getElementById('status');
+const descriptionText = document.getElementById('description'); // HTMLに <p id="description"></p> を追加する必要があります
 
 // デバイスの向き情報（コンパス）を取得
 const handleDeviceOrientation = (event) => {
@@ -22,6 +23,7 @@ const handleDeviceOrientation = (event) => {
   let angle = window.orientation || 0;
   
   if (alpha !== null) {
+      // 東西の反転を修正
       currentHeading = (360 - alpha) % 360;
   }
 };
@@ -95,24 +97,42 @@ function getPositionAndSend() {
     prevLng = lng;
     prevHeading = heading;
 
-    const url = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
-    console.log("→ fetch URL:", url);
+    // 1. get_near_block_nc.pyの呼び出し (codeとinstallを取得)
+    const nearBlockUrl = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
+    console.log("→ fetch nearBlockUrl:", nearBlockUrl);
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(nearBlockUrl);
       const data = await res.json();
-      const direction = data.direction;
+      const direction = data.direction; // ブロックの絶対方角 (英語の文字列)
       const blockName = data.name;
       const distance = data.distance;
+      const blockCode = data.code;     // ブロックのコード
+      const install = data.install;    // ブロックの設置向き (0-11)
 
       const relativeDir = convertToRelativeDirection(direction, heading);
       
+      // install値と進行方向からangle(0-3)を計算
+      const relativeAngle = getRelativeAngleByInstall(heading, install); 
+      
+      // 2. get_message_nc.pyの呼び出し (messageを取得)
+      const messageUrl = `https://codedbb.com/tenji/get_message_nc.py?code=${blockCode}&angle=${relativeAngle}`;
+      console.log("→ fetch messageUrl:", messageUrl);
+      
+      const messageRes = await fetch(messageUrl);
+      const message = await messageRes.text(); // テキストとして取得
+
+      // 通知音の処理
       if (relativeDir !== prevRelativeDir || blockName !== prevBlockName) {
         notificationSound.play();
       }
       
+      // 案内情報を画面に表示
       document.getElementById("result").textContent =
         `${relativeDir}に${blockName}があります（約${distance}m）`;
+      
+      // 説明文を表示
+      descriptionText.textContent = message;
 
       prevRelativeDir = relativeDir;
       prevBlockName = blockName;
@@ -124,6 +144,32 @@ function getPositionAndSend() {
   }, (err) => {
     statusText.textContent = `位置情報取得失敗: ${err.message}`;
   });
+}
+
+// install値（0-11）と進行方向からangle（0-3）を決定
+function getRelativeAngleByInstall(heading, install) {
+  if (heading === null || install === undefined) return 0;
+  
+  // 1. install値を角度に変換 (0=北, 30度刻み)
+  const installAngle = parseFloat(install) * 30;
+  
+  // 2. 進行方向と設置向きの角度差を計算 (0〜360度)
+  // 差が0度: ユーザーが点字ブロックと同じ方向を向いている
+  let angleDiff = (heading - installAngle + 360) % 360;
+  
+  // 3. 角度差を0, 1, 2, 3に変換 (90度刻み)
+  // 進行方向と設置方向が一致するとき（正面）を0とする
+  
+  // 差分が315度超〜45度以下 (正面)
+  if (angleDiff <= 45 || angleDiff > 315) return 0; 
+  // 差分が45度超〜135度以下 (右)
+  if (angleDiff <= 135) return 1; 
+  // 差分が135度超〜225度以下 (後方)
+  if (angleDiff <= 225) return 2; 
+  // 差分が225度超〜315度以下 (左)
+  if (angleDiff <= 315) return 3; 
+  
+  return 0; // デフォルト
 }
 
 function convertToRelativeDirection(targetDirection, heading) {
