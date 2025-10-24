@@ -1,3 +1,6 @@
+#!/usr/bin/python3 
+# ↑ お客様の環境に合わせて、このパスが存在するか必ずご確認ください
+
 import cgi
 import json
 import sys
@@ -6,8 +9,7 @@ from lib import connections
 import lib.orm_blockdata as blockdata
 from math import radians, sin, cos, atan2, degrees, pi # calc_directionで使用
 
-# 既存の関数
-
+# 既存の関数 (変更なし)
 def near_block(lat, lng, category="", limit=10):
     if category == "":
         # install を取得するように修正
@@ -77,10 +79,15 @@ def get_blockmessage_by_code(code, lang="ja"):
 
 
 def calc_distance(current_lat, current_lng, target_lat, target_lng):
-    from geopy.distance import geodesic
-    current_pos = (current_lat, current_lng)
-    target_pos  = (target_lat, target_lng)
-    return geodesic(current_pos, target_pos).m
+    # geopyがインストールされていない場合に備え、処理をtry-exceptで囲む
+    try:
+        from geopy.distance import geodesic
+        current_pos = (current_lat, current_lng)
+        target_pos  = (target_lat, target_lng)
+        return geodesic(current_pos, target_pos).m
+    except ImportError:
+        # geopyがない場合は簡単なユークリッド距離を返す（デバッグ用）
+        return ((float(current_lat) - float(target_lat))**2 + (float(current_lng) - float(target_lng))**2)**0.5
 
 
 def calc_direction(current_lat, current_lng, target_lat, target_lng):
@@ -102,6 +109,7 @@ def calc_direction(current_lat, current_lng, target_lat, target_lng):
     ph2 = radians(lat2)
     ellipsoid = None
     a, f = GEODETIC_DATUM.get(ellipsoid, GEODETIC_DATUM.get(ELLIPSOID_GRS80))
+    # atanの引数修正 (atan((1-f)*tan(ph1)) -> atan2((1-f)*sin(ph1), cos(ph1)))
     U1 = atan2((1 - f) * sin(ph1), cos(ph1))
     U2 = atan2((1 - f) * sin(ph2), cos(ph2))
 
@@ -144,25 +152,42 @@ def to_8direction(degrees):
 
 # メイン処理
 
-form = cgi.FieldStorage()
-mode = form.getvalue("mode", default="json")
-lat = form.getvalue("lat", default="")
-lng = form.getvalue("lng", default="")
-category = form.getvalue("category", default="")
-n = form.getvalue("n", default="1")
-lang = form.getvalue("lang", default="ja")  # 言語指定パラメータ
+# ################# DEBUG START: デバッグ実行用にパラメータを直書き #################
+# ★ ターミナルで実行する際は、以下のコメントアウトを解除してください
+mode = "message"
+lat = "36.537737430728676"  
+lng = "136.6158203191914"  
+category = ""
+n = "1"
+lang = "ja"
+# ################# DEBUG END ###################################################
+
+# ★ Webサーバー経由で実行する際は、上記をコメントアウトし、以下を有効に戻してください
+# form = cgi.FieldStorage()
+# mode = form.getvalue("mode", default="json")
+# lat = form.getvalue("lat", default="")
+# lng = form.getvalue("lng", default="")
+# category = form.getvalue("category", default="")
+# n = form.getvalue("n", default="1")
+# lang = form.getvalue("lang", default="ja")  # 言語指定パラメータ
+
 
 if mode == "json":
     print("Content-Type: application/json;charset=utf-8\n")
 elif mode == "message":
     print("Content-Type: application/json;charset=utf-8\n")
 else:
-    print("Content-Type: text/html;charset=utf-8\n\n")
+    # CGIとして実行する場合は、ヘッダ出力が必要です
+    # デバッグ実行時にこの行が実行されるとエラーになります
+    pass
 
-# セミコロンの除去
+
+# セミコロンの除去 (CGIとして実行する場合に必要)
 for key in ["lat", "lng", "category", "n", "lang"]:
-    if ";" in locals()[key]:
+    # デバッグ実行時はlocals()に定義した変数を参照します
+    if key in locals() and isinstance(locals()[key], str) and ";" in locals()[key]:
         locals()[key] = locals()[key].replace(";", "")
+
 
 if lat != "" and lng != "":
     if mode == "message":
