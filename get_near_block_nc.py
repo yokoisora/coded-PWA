@@ -128,7 +128,7 @@ def calc_direction(current_lat, current_lng, target_lat, target_lng):
         a1 = a1 + pi * 2
 
     # ★ 修正: U+00A0が含まれていた可能性のある行のスペースを修正
-    return degrees(a1) # 方位角(始点→終点)
+    return degrees(a1)
 
 
 def to_8direction(degrees):
