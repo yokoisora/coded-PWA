@@ -1,5 +1,4 @@
 #!/usr/bin/env python3 
-# ↑ Pythonインタープリタを探す方法を 'env' 経由に修正
 
 import cgi
 import json
@@ -27,15 +26,9 @@ def near_block(lat, lng, category="", limit=10):
             result = cursor.fetchall()
 
     except TypeError as e:
-        # print("Content-Type: text/plain\n")
-        # print("結果が返ってきていません(near_block)")
-        # print(e)
         result = []
 
     except Exception as e:
-        # print("Content-Type: text/plain\n")
-        # print("エラーが発生しました。(near_block)")
-        # print(e)
         result = []
 
     finally:
@@ -68,8 +61,6 @@ def get_blockmessage_by_code(code, lang="ja"):
             result = cursor.fetchall()  # 同じcodeに関連する複数のレコードを取得
 
     except Exception as e:
-        # print(f"エラーが発生しました。({table_name})")
-        # print(e)
         result = None
 
     finally:
@@ -127,8 +118,8 @@ def calc_direction(current_lat, current_lng, target_lat, target_lng):
     if a1 < 0:
         a1 = a1 + pi * 2
 
-    # ★ 修正: U+00A0が含まれていた可能性のある行のスペースを修正
-    return degrees(a1)
+    # ★ 修正済み: 非印字文字によるSyntaxErrorを解消
+    return degrees(a1) # 方位角(始点→終点)
 
 
 def to_8direction(degrees):
@@ -153,24 +144,14 @@ def to_8direction(degrees):
 
 # メイン処理
 
-# ################# DEBUG START: デバッグ実行用にパラメータを直書き #################
-# ★ ターミナルで実行する際は、以下のコメントアウトを解除してください
-mode = "message"
-lat = "36.537737430728676"  
-lng = "136.6158203191914"  
-category = ""
-n = "1"
-lang = "ja"
-# ################# DEBUG END ###################################################
-
-# ★ Webサーバー経由で実行する際は、上記をコメントアウトし、以下を有効に戻してください
-# form = cgi.FieldStorage()
-# mode = form.getvalue("mode", default="json")
-# lat = form.getvalue("lat", default="")
-# lng = form.getvalue("lng", default="")
-# category = form.getvalue("category", default="")
-# n = form.getvalue("n", default="1")
-# lang = form.getvalue("lang", default="ja")  # 言語指定パラメータ
+# ★ Webサーバー経由で実行するモードに戻す
+form = cgi.FieldStorage()
+mode = form.getvalue("mode", default="json")
+lat = form.getvalue("lat", default="")
+lng = form.getvalue("lng", default="")
+category = form.getvalue("category", default="")
+n = form.getvalue("n", default="1")
+lang = form.getvalue("lang", default="ja")  # 言語指定パラメータ
 
 
 if mode == "json":
@@ -178,9 +159,8 @@ if mode == "json":
 elif mode == "message":
     print("Content-Type: application/json;charset=utf-8\n")
 else:
-    # CGIとして実行する場合は、ヘッダ出力が必要です
-    # デバッグ実行時にこの行が実行されるとエラーになります
-    pass
+    # デバッグ実行ではないので、Content-Typeヘッダは必須
+    print("Content-Type: text/html;charset=utf-8\n\n")
 
 
 # セミコロンの除去 (CGIとして実行する場合に必要)
