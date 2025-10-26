@@ -14,7 +14,7 @@ const notificationSound = new Audio('ping_1.mp3');
 const startButton = document.getElementById('startButton');
 const startScreen = document.getElementById('start-screen');
 const mainContent = document.getElementById('main-content');
-const statusText = document.getElementById('status');
+const statusText = document.getElementById('status'); // ★ グローバル変数としてDOM要素を保持
 const descriptionText = document.getElementById('description'); // 説明文表示エリア
 
 // デバイスの向き情報（コンパス）を取得
@@ -77,13 +77,14 @@ const handleDeviceMotion = (event) => {
 
 function getPositionAndSend() {
   if (!navigator.geolocation) {
-    statusText.textContent = "位置情報に非対応です。";
+    // statusTextがnullでないことを確認してからアクセス
+    if (statusText) statusText.textContent = "位置情報に非対応です。";
     return;
   }
   
   // コンパスの値がまだ取得できていない場合は処理をスキップ
   if (currentHeading === null) {
-      statusText.textContent = "位置情報とコンパスを調整中...";
+      if (statusText) statusText.textContent = "位置情報とコンパスを調整中...";
       return;
   }
 
@@ -95,7 +96,12 @@ function getPositionAndSend() {
     
     // 画面下部のステータス表示を更新
     const headingDirection = getHeadingDirection8(heading);
-    statusText.textContent = `緯度: ${lat.toFixed(6)}, 経度: ${lng.toFixed(6)}（進行方向: ${headingDirection}）`;
+    // ★ statusTextがnullでないことを確認
+    if (statusText) statusText.textContent = `緯度: ${lat.toFixed(6)}, 経度: ${lng.toFixed(6)}（進行方向: ${headingDirection}）`;
+
+    prevLat = lat;
+    prevLng = lng;
+    prevHeading = heading;
 
     // 1. get_near_block_nc.pyの呼び出し (codeとinstallを取得)
     const nearBlockUrl = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
@@ -127,7 +133,16 @@ function getPositionAndSend() {
       console.log("→ fetch messageUrl:", messageUrl);
       
       const messageRes = await fetch(messageUrl);
-      const message = await messageRes.text(); // テキストとして取得
+      // ★ 500エラーが出ているため、responseTextでそのまま取得
+      const message = await messageRes.text(); 
+      
+      // 500エラーの場合、message変数にはHTMLエラーページの内容が入っている可能性があります。
+      if (messageRes.status === 500) {
+          document.getElementById("result").textContent = `メッセージ取得エラー: 500 Internal Server Error`;
+          descriptionText.textContent = `サーバー側でエラーが発生しました。Pythonコードを確認してください。(code=${blockCode}, angle=${relativeAngle})`;
+          console.error("get_message_nc.py 500 Error response:", message);
+          return;
+      }
 
       // 通知音の処理
       if (relativeDir !== prevRelativeDir || blockName !== prevBlockName) {
@@ -150,7 +165,8 @@ function getPositionAndSend() {
       console.error("APIエラー:", err);
     }
   }, (err) => {
-    statusText.textContent = `位置情報取得失敗: ${err.message}`;
+    // ★ statusTextがnullでないことを確認
+    if (statusText) statusText.textContent = `位置情報取得失敗: ${err.message}`;
   }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }); // 高精度設定
 }
 
@@ -171,7 +187,6 @@ function getRelativeAngleByInstall(heading, install) {
   let angleDiff = (heading - installAngle + 360) % 360;
   
   // 3. 角度差を0, 1, 2, 3に変換 (90度刻み)
-  // 進行方向と設置方向が一致するとき（正面）を0とする
   
   // 差分が315度超〜45度以下 (正面)
   if (angleDiff <= 45 || angleDiff > 315) return 0; 
@@ -204,7 +219,7 @@ function convertToRelativeDirection(targetDirection, heading) {
   if (angleDiff < 157.5) return "右後ろ";
   if (angleDiff < 202.5) return "後ろ";
   if (angleDiff < 247.5) return "左後ろ";
-  if (angleDiff < 292.5) return "左";
+  if (angleDiff < 292.5) return "西";
   return "左前";
 }
 
@@ -221,4 +236,3 @@ function getHeadingDirection8(deg) {
   if (deg < 292.5) return "西";
   return "北西";
 }
-```eof
