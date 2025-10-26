@@ -15,7 +15,7 @@ const startButton = document.getElementById('startButton');
 const startScreen = document.getElementById('start-screen');
 const mainContent = document.getElementById('main-content');
 const statusText = document.getElementById('status');
-const descriptionText = document.getElementById('description'); // HTMLに <p id="description"></p> を追加する必要があります
+const descriptionText = document.getElementById('description'); // 説明文表示エリア
 
 // デバイスの向き情報（コンパス）を取得
 const handleDeviceOrientation = (event) => {
@@ -23,7 +23,7 @@ const handleDeviceOrientation = (event) => {
   let angle = window.orientation || 0;
   
   if (alpha !== null) {
-      // 東西の反転を修正
+      // 北を0度とする (360 - alpha) のパターンを使用
       currentHeading = (360 - alpha) % 360;
   }
 };
@@ -68,7 +68,7 @@ function startApp() {
 const handleDeviceMotion = (event) => {
   const acceleration = event.accelerationIncludingGravity;
   const threshold = 0.5;
-  if (acceleration.x > threshold || acceleration.y > threshold || acceleration.z > threshold) {
+  if (Math.abs(acceleration.x) > threshold || Math.abs(acceleration.y) > threshold || Math.abs(acceleration.z) > threshold) {
     isMoving = true;
   } else {
     isMoving = false;
@@ -80,6 +80,12 @@ function getPositionAndSend() {
     statusText.textContent = "位置情報に非対応です。";
     return;
   }
+  
+  // コンパスの値がまだ取得できていない場合は処理をスキップ
+  if (currentHeading === null) {
+      statusText.textContent = "位置情報とコンパスを調整中...";
+      return;
+  }
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const lat = pos.coords.latitude;
@@ -87,15 +93,9 @@ function getPositionAndSend() {
 
     let heading = currentHeading;
     
-    let movementStatus = "";
+    // 画面下部のステータス表示を更新
     const headingDirection = getHeadingDirection8(heading);
-    movementStatus = `緯度: ${lat}, 経度: ${lng}（進行方向: ${headingDirection}）`;
-    
-    statusText.textContent = movementStatus;
-
-    prevLat = lat;
-    prevLng = lng;
-    prevHeading = heading;
+    statusText.textContent = `緯度: ${lat.toFixed(6)}, 経度: ${lng.toFixed(6)}（進行方向: ${headingDirection}）`;
 
     // 1. get_near_block_nc.pyの呼び出し (codeとinstallを取得)
     const nearBlockUrl = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
@@ -104,6 +104,13 @@ function getPositionAndSend() {
     try {
       const res = await fetch(nearBlockUrl);
       const data = await res.json();
+      
+      if (data.error) {
+           document.getElementById("result").textContent = data.error;
+           descriptionText.textContent = "ブロック情報がありません。";
+           return;
+      }
+
       const direction = data.direction; // ブロックの絶対方角 (英語の文字列)
       const blockName = data.name;
       const distance = data.distance;
@@ -132,29 +139,35 @@ function getPositionAndSend() {
         `${relativeDir}に${blockName}があります（約${distance}m）`;
       
       // 説明文を表示
-      descriptionText.textContent = message;
+      descriptionText.textContent = message.trim();
 
       prevRelativeDir = relativeDir;
       prevBlockName = blockName;
 
     } catch (err) {
       document.getElementById("result").textContent = "通信エラー";
+      descriptionText.textContent = "サーバーとの通信に失敗しました。";
       console.error("APIエラー:", err);
     }
   }, (err) => {
     statusText.textContent = `位置情報取得失敗: ${err.message}`;
-  });
+  }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }); // 高精度設定
 }
 
-// install値（0-11）と進行方向からangle（0-3）を決定
+/**
+ * install値（0-11）と進行方向からangle（0-3）を決定する
+ * @param {number} heading - ユーザーの現在の進行方向（0-360度, 0=北）
+ * @param {string | number} install - ブロックの設置向き（0-11, 0=北）
+ * @returns {number} 0 (正面), 1 (右), 2 (後方), 3 (左)
+ */
 function getRelativeAngleByInstall(heading, install) {
   if (heading === null || install === undefined) return 0;
   
-  // 1. install値を角度に変換 (0=北, 30度刻み)
+  // 1. install値を絶対角度に変換 (0=北, 30度刻み)
   const installAngle = parseFloat(install) * 30;
   
   // 2. 進行方向と設置向きの角度差を計算 (0〜360度)
-  // 差が0度: ユーザーが点字ブロックと同じ方向を向いている
+  // angleDiff = ユーザーが「ブロックの正面（installAngle）」からどれだけ右を向いているか
   let angleDiff = (heading - installAngle + 360) % 360;
   
   // 3. 角度差を0, 1, 2, 3に変換 (90度刻み)
@@ -169,7 +182,7 @@ function getRelativeAngleByInstall(heading, install) {
   // 差分が225度超〜315度以下 (左)
   if (angleDiff <= 315) return 3; 
   
-  return 0; // デフォルト
+  return 0;
 }
 
 function convertToRelativeDirection(targetDirection, heading) {
@@ -208,3 +221,4 @@ function getHeadingDirection8(deg) {
   if (deg < 292.5) return "西";
   return "北西";
 }
+```eof
