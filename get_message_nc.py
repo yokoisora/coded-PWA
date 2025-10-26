@@ -66,14 +66,27 @@ sys.path.append('../')
 from lib import connections
 
 # URLパラメータの取得
-form = cgi.FieldStorage()
+#form = cgi.FieldStorage()
 # その中からcodeとangleで取得
-mode = form.getvalue("mode",default="message")
-code = form.getvalue("code",default="")
-angle = form.getvalue("angle",default="")
-messagecategory = form.getvalue("messagecategory",default="normal")
-language = form.getvalue("language", default="ja")
+#mode = form.getvalue("mode",default="message")
+#code = form.getvalue("code",default="")
+#angle = form.getvalue("angle",default="")
+#messagecategory = form.getvalue("messagecategory",default="normal")
+#language = form.getvalue("language", default="ja")
 
+# get_message_nc.py 内の修正
+# form = cgi.FieldStorage()
+# mode = form.getvalue("mode",default="message")
+# code = form.getvalue("code",default="")
+# angle = form.getvalue("angle",default="")
+# ...
+
+# デバッグ用固定値を設定 (例)
+mode = "message"
+code = "5242900" 
+angle = "0" 
+messagecategory = "normal"
+language = "ja"
 # SQLインジェクション対策
 if( ";" in mode):
         mode="message"
