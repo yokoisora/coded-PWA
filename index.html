@@ -1,6 +1,11 @@
-<!DOCTYPE html> <html lang="ja"> <head>
-  <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <title>点字ブロック案内</title>
-  <link rel="manifest" href="manifest.json"> </head>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>点字ブロック案内</title>
+  <link rel="manifest" href="manifest.json">
+</head>
 <body>
   <div id="start-screen">
     <p>アプリを起動するにはボタンをタップしてください</p>
@@ -8,8 +13,18 @@
   </div>
   
   <div id="main-content" style="display: none;">
-    <h1>現在位置と案内</h1> <p id="status">位置取得中...</p> <p id="result"></p> <p id="direction"></p> </div>
+    <h1>現在位置と案内</h1>
+    <p id="status">位置取得中...</p>
+    <p id="result"></p>
+    
+    <!-- ★ 修正点: 説明文表示用の要素を追加 -->
+    <h2>ブロック詳細情報</h2>
+    <p id="description">説明文が表示されます。</p>
+    
+    <!-- id="direction" は app.js で使用されていないため削除しました -->
+  </div>
 
 
-  <script src="app.js"></script> </body>
+  <script src="app.js"></script>
+</body>
 </html>
