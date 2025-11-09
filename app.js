@@ -135,7 +135,7 @@ function getPositionAndSend() {
            return;
       }
 
-      const direction = data.direction; 
+      //const direction = data.direction; 
       const blockName = data.name;
       const distance = data.distance;
       const blockCode = data.code;     
