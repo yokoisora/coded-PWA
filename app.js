@@ -135,16 +135,16 @@ function getPositionAndSend() {
            return;
       }
 
-      //const direction = data.direction; 
+      const directionEnglish = data.direction; // ★修正不要: get_near_block_nc.py からの英語方位
       const blockName = data.name;
       const distance = data.distance;
       const blockCode = data.code;     
       const install = data.install;    
-      const directionEnglish = data.direction; // 英語の8方位（例: north）を取得
-      const relativeDir = convertToRelativeDirection(directionEnglish, heading);
-      //const relativeDir = convertToRelativeDirection(direction, heading);
-      const relativeAngle = getRelativeAngleByInstall(heading, install); 
+
+      // directionEnglish（例: "north"）を基に相対方向（例: "前"）を計算
+      const relativeDir = convertToRelativeDirection(directionEnglish, heading); 
       
+      const relativeAngle = getRelativeAngleByInstall(heading, install); 
       
       // 2. get_message_nc.pyの呼び出し (messageを取得)
       const messageUrl = `https://codedbb.com/tenji/get_message_nc.py?code=${blockCode}&angle=${relativeAngle}`;
@@ -182,6 +182,7 @@ function getPositionAndSend() {
       console.error("APIエラー:", err);
     }
   }, (err) => {
+    // エラー時の処理も statusTextが初期化されている前提
     if (statusText) statusText.textContent = `位置情報取得失敗: ${err.message}`;
   }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }); 
 }
@@ -206,16 +207,19 @@ function getRelativeAngleByInstall(heading, install) {
 function convertToRelativeDirection(targetDirection, heading) {
   if (heading === null) return targetDirection;
 
+  // 英語の8方位文字列を角度にマッピング
   const directions = {
     "north": 0, "northeast": 45, "east": 90, "southeast": 135,
     "south": 180, "southwest": 225, "west": 270, "northwest": 315
   };
 
   const targetAngle = directions[targetDirection];
-  if (targetAngle === undefined) return targetDirection;
+  // 英語の8方位にマッチしない場合は、そのままの文字列を返す
+  if (targetAngle === undefined) return targetDirection; 
 
   const angleDiff = (targetAngle - heading + 360) % 360;
 
+  // 角度差を基に日本語の相対方向を決定
   if (angleDiff < 22.5 || angleDiff >= 337.5) return "前";
   if (angleDiff < 67.5) return "右前";
   if (angleDiff < 112.5) return "右";
