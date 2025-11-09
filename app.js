@@ -168,7 +168,7 @@ function getPositionAndSend() {
       
       // 案内情報を画面に表示
       resultText.textContent =
-        `${relativeDir}に${blockName}があります（約${distance}m）`;
+        `${targetDirection}に${blockName}があります（約${distance}m）`;
       
       // 説明文を表示
       descriptionText.textContent = message.trim();
