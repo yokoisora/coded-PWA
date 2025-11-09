@@ -140,9 +140,11 @@ function getPositionAndSend() {
       const distance = data.distance;
       const blockCode = data.code;     
       const install = data.install;    
-
-      const relativeDir = convertToRelativeDirection(direction, heading);
+      const directionEnglish = data.direction; // 英語の8方位（例: north）を取得
+      const relativeDir = convertToRelativeDirection(directionEnglish, heading);
+      //const relativeDir = convertToRelativeDirection(direction, heading);
       const relativeAngle = getRelativeAngleByInstall(heading, install); 
+      
       
       // 2. get_message_nc.pyの呼び出し (messageを取得)
       const messageUrl = `https://codedbb.com/tenji/get_message_nc.py?code=${blockCode}&angle=${relativeAngle}`;
