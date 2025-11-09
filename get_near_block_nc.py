@@ -1,4 +1,5 @@
-#!/usr/bin/env python3 
+#!/usr/bin/python3 
+# ↑ サーバー環境に合わせて Python 3 の絶対パスに修正（/usr/bin/python3 など）
 
 import cgi
 import json
@@ -6,9 +7,10 @@ import sys
 sys.path.append('../')
 from lib import connections
 import lib.orm_blockdata as blockdata
-from math import radians, sin, cos, atan2, degrees, pi # calc_directionで使用
+from math import radians, sin, cos, atan2, degrees, pi 
 
-# 既存の関数 (変更なし)
+# 既存の関数 (DB接続、距離計算、方位計算)
+
 def near_block(lat, lng, category="", limit=10):
     if category == "":
         # install を取得するように修正
@@ -122,6 +124,25 @@ def calc_direction(current_lat, current_lng, target_lat, target_lng):
     return degrees(a1) # 方位角(始点→終点)
 
 
+def to_english_8direction(deg):
+    if deg < 22.5 or deg >= 337.5:
+        return "north"
+    elif deg < 67.5:
+        return "northeast"
+    elif deg < 112.5:
+        return "east"
+    elif deg < 157.5:
+        return "southeast"
+    elif deg < 202.5:
+        return "south"
+    elif deg < 247.5:
+        return "southwest"
+    elif deg < 292.5:
+        return "west"
+    else:
+        return "northwest"
+
+
 def to_8direction(degrees):
     if degrees < 22.5:
         return "北"
@@ -184,7 +205,9 @@ if lat != "" and lng != "":
         record = blocks[0] 
         
         # 基本情報を計算
-        direction = calc_direction(lat, lng, record['latitude'], record['longitude'])
+        direction_deg = calc_direction(lat, lng, record['latitude'], record['longitude'])
+        direction_en = to_english_8direction(direction_deg) # 英語の8方位
+        direction_ja = to_8direction(direction_deg)         # 日本語の8方位
         distance = calc_distance(lat, lng, record['latitude'], record['longitude'])
 
         # blockmessageの詳細を取得 (複数のangle, categoryがあるためリストになる)
@@ -205,8 +228,8 @@ if lat != "" and lng != "":
                     "name": record['name'],
                     "install": record['install'], # app.jsで使用
                     "distance": round(distance, 1),
-                    "direction": direction,
-                    "direction8": to_8direction(direction),
+                    "direction": direction_en,    # ★ 英語の8方位
+                    "direction8": direction_ja,   # ★ 日本語の8方位
 
                     # メッセージ詳細情報
                     "angle": blockmessage['angle'], # app.jsで使用
@@ -222,20 +245,22 @@ if lat != "" and lng != "":
 
     elif mode == "message":
         # app.jsのmessageモードが期待するJSON形式に合うように、最寄りのブロックの情報を整形して返す
-        if blocks_list:
-            first_block = blocks_list[0]
+        if blocks:
+            # messageモードはblocks_list[0]の情報を直接使用
             
             # 最寄りのブロックの基本情報のみを返す
             print(json.dumps({
-                "direction": first_block["direction8"], # 8方角の英語表記
-                "name": first_block["name"],
-                "distance": first_block["distance"],
-                "code": first_block["code"],     # app.jsで使用
-                "install": first_block["install"] # app.jsで使用
+                "direction": direction_en,      # ★ app.jsが相対方向に変換できるよう英語の方位を返す
+                "name": record["name"],
+                "distance": round(distance, 1),
+                "code": record["code"],     # app.jsで使用
+                "install": record["install"] # app.jsで使用
             }, ensure_ascii=False))
         else:
+             print("Content-Type: application/json\n")
              print(json.dumps({"error": "No near block found"}, ensure_ascii=False))
 
 # 緯度経度がない場合
 else:
+    print("Content-Type: application/json\n")
     print(json.dumps({"error": "Missing lat/lng"}, ensure_ascii=False))
