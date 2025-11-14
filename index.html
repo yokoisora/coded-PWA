@@ -1,101 +1,30 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>点字ブロック案内</title>
-    <link rel="manifest" href="manifest.json">
-    <style>
-        /* 全体のフォントと余白をリセット */
-        body {
-            font-family: 'Inter', 'Helvetica', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-
-        /* 画面中央に配置するスタイル */
-        #start-screen {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 80vh; /* 画面の高さに応じて中央に配置 */
-            text-align: center;
-        }
-
-        /* ★ 開始ボタンのスタイル調整 ★ */
-        #startButton {
-            background-color: #007aff; /* iOSの標準的な青 */
-            color: white;
-            border: none;
-            border-radius: 12px; /* 丸みのある角 */
-            padding: 25px 0; /* 上下のパディングを大きく */
-            width: 90vw; /* 画面幅の90%を使用 */
-            max-width: 400px; /* 最大幅を設定 */
-            font-size: 28px; /* フォントサイズを大きく */
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.2s;
-            margin-top: 30px;
-        }
-
-        #startButton:active {
-            background-color: #0056b3;
-        }
-
-        h1 {
-            color: #007aff;
-            border-bottom: 3px solid #007aff;
-            padding-bottom: 10px;
-        }
-
-        h2 {
-            margin-top: 25px;
-        }
-
-        #description {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            line-height: 1.6;
-        }
-        
-        /* 緯度経度ステータス情報 */
-        #status {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
-        }
-        
-        /* メイン案内情報 */
-        #result {
-            font-size: 20px;
-            font-weight: bold;
-            color: #d9534f; /* 目立つ色 */
-        }
-    </style>
-    <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>点字ブロック案内</title>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <div id="start-screen">
-        <p style="font-size: 18px; margin-bottom: 20px;">アプリを起動するにはボタンをタップしてください</p>
-        <button id="startButton">開始</button>
-    </div>
+  <div id="start-screen">
+    <p>アプリを起動するにはボタンをタップしてください</p>
+    <button id="startButton">開始</button>
+  </div>
+  
+  <div id="main-content" style="display: none;">
+    <h1>現在位置と案内</h1>
+    <p id="status">位置取得中...</p>
+    <p id="result"></p>
     
-    <div id="main-content" style="display: none;">
-        <h1>現在位置と案内</h1> 
-        <p id="status">位置取得中...</p> 
-        <p id="result"></p> 
-        <h2>ブロック詳細情報</h2>
-        <p id="description">説明文が表示されます。</p>
-    </div>
+    <!-- ★ 修正点: 説明文表示用の要素を追加 -->
+    <h2>ブロック詳細情報</h2>
+    <p id="description">説明文が表示されます。</p>
+    
+    <!-- id="direction" は app.js で使用されていないため削除しました -->
+  </div>
 
 
-    <script src="app.js"></script> 
+  <script src="app.js"></script>
 </body>
 </html>
