@@ -6,7 +6,7 @@ let isMoving = false;
 let intervalId = null; 
 let prevRelativeDir = null; 
 let prevBlockName = null; 
-let prevNotificationRange = null; // ★ 前回通知した距離範囲を保持
+let prevNotificationRange = null; // ★ 新規: 前回通知した距離範囲を保持
 
 // 効果音の音声ファイルを指定
 const notificationSound = new Audio('ping_1.mp3');
@@ -18,7 +18,7 @@ let mainContent;
 let statusText; 
 let descriptionText; 
 let resultText; 
-let notificationDistanceSelect; // ★ 通知距離設定要素
+let notificationDistanceSelect; // ★ 新規: 通知距離設定要素
 
 // ページがロードされた後に要素を取得する初期化関数
 function initializeDOM() {
@@ -28,7 +28,7 @@ function initializeDOM() {
     statusText = document.getElementById('status'); 
     descriptionText = document.getElementById('description'); 
     resultText = document.getElementById('result'); 
-    notificationDistanceSelect = document.getElementById('notification-distance'); 
+    notificationDistanceSelect = document.getElementById('notification-distance'); // ★ 新規: 取得
 
     // エラー防止のため、要素が取得できたか確認する
     if (!statusText || !resultText || !startButton || !notificationDistanceSelect) {
@@ -107,7 +107,7 @@ function getPositionAndSend() {
       return;
   }
 
-  // ★ 設定された通知距離を取得 (メートル)
+  // ★ 新規: 設定された通知距離を取得 (メートル)
   const notificationDistance = parseFloat(notificationDistanceSelect.value);
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -154,12 +154,7 @@ function getPositionAndSend() {
       const relativeDir = convertToRelativeDirection(directionEnglish, heading); 
       const relativeAngle = getRelativeAngleByInstall(heading, install); 
       
-      // ★★★ 案内表示の更新 (通知条件に関わらず常に最新の距離と方向を表示) ★★★
-      // distance.toFixed(1)で距離の固定問題を回避
-      resultText.textContent =
-          `${relativeDir}に${blockName}があります（約${distance.toFixed(1)}m）`;
-
-      // ★★★ 通知/音/メッセージ更新ロジック ★★★
+      // ★★★ 通知/案内更新ロジック ★★★
       let shouldNotify = false;
       const currentRange = calculateCurrentRange(distance, notificationDistance);
 
@@ -167,20 +162,14 @@ function getPositionAndSend() {
           // 常に更新モード (距離による制限なし)
           shouldNotify = (relativeDir !== prevRelativeDir || blockName !== prevBlockName);
       } else {
-          // 距離制限モード: 
-          
-          // 1. より近い通知範囲に入ったとき (例: 12m -> 8m)
+          // 距離制限モード: 設定距離内で、より近い範囲に移動した時のみ通知
+          // 例: 設定10mで、15mから5mの範囲に初めて入ったとき
           if (distance <= notificationDistance && currentRange !== prevNotificationRange) {
-              shouldNotify = true;
-          }
-          
-          // 2. 案内方向やブロック名が変わった時も通知（従来方式、ユーザー要望を反映）
-          if (relativeDir !== prevRelativeDir || blockName !== prevBlockName) {
               shouldNotify = true;
           }
       }
 
-      // 2. 音とメッセージの取得・表示
+      // 2. 画面更新と通知
       if (shouldNotify) {
           notificationSound.play();
           
@@ -197,6 +186,14 @@ function getPositionAndSend() {
           } else {
               descriptionText.textContent = message.trim();
           }
+
+          // 案内情報の更新
+          resultText.textContent =
+              `${relativeDir}に${blockName}があります（約${distance.toFixed(1)}m）`;
+      } else {
+          // 通知がない場合でも、距離の表示は常に更新
+          resultText.textContent =
+              `${relativeDir}に${blockName}があります（約${distance.toFixed(1)}m）`;
       }
       
       // ★★★ 状態の保存 ★★★
@@ -221,13 +218,15 @@ function getPositionAndSend() {
 
 /**
  * ブロックまでの距離に基づき、現在の通知範囲（0〜N）を計算する
+ * 範囲は notificationDistance の値に応じて決まる
+ * 例: distance=12m, setting=5m の場合、範囲は 3 (10m超〜15m) になる
  * @param {number} distance - 現在のブロックまでの距離 (メートル)
  * @param {number} setting - ユーザーが設定した通知距離 (メートル)
  * @returns {number} 現在の距離が属する通知範囲のインデックス
  */
 function calculateCurrentRange(distance, setting) {
     if (setting <= 0 || distance <= setting) {
-        return 0; // 設定距離内または設定が0の場合 (最も近い/通知する範囲)
+        return 0; // 設定距離内または設定が0の場合
     }
     // 設定距離を超えている場合、設定距離の倍数で範囲を計算
     return Math.floor(distance / setting);
