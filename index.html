@@ -78,6 +78,29 @@
             font-weight: bold;
             color: #d9534f; /* 目立つ色 */
         }
+        
+        /* 通知設定UIのスタイル */
+        .setting-control {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .setting-control label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .setting-control select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #aaa;
+            font-size: 16px;
+        }
     </style>
     <link rel="manifest" href="manifest.json">
 </head>
@@ -88,12 +111,23 @@
     </div>
     
     <div id="main-content" style="display: none;">
-        <h1>現在位置と案内</h1>
+        <h1>現在位置と案内</h1> 
+        
+        <!-- ★ 通知距離設定UIの追加 ★ -->
+        <div class="setting-control">
+            <label for="notification-distance">通知タイミング設定 (m)</label>
+            <select id="notification-distance">
+                <option value="5">5m</option>
+                <option value="10" selected>10m (推奨)</option>
+                <option value="15">15m</option>
+                <option value="20">20m</option>
+                <option value="25">25m</option>
+                <option value="0">常に更新</option>
+            </select>
+        </div>
         
         <p id="status">位置取得中...</p> 
-        
-        <p id="result" aria-live="polite" aria-atomic="true"></p>
-
+        <p id="result" aria-live="polite" aria-atomic="true"></p> 
         <h2>ブロック詳細情報</h2>
         <p id="description" aria-live="polite" aria-atomic="true">説明文が表示されます。</p>
     </div>
