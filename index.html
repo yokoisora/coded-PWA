@@ -88,9 +88,12 @@
     </div>
     
     <div id="main-content" style="display: none;">
-        <h1>現在位置と案内</h1> 
-        <p id="status">位置取得中...</p> 
-        <p id="result"></p> 
+        <h1>現在位置と案内</h1>
+        
+        <p id="status" aria-live="polite" aria-atomic="true">位置取得中...</p>
+        
+        <p id="result" aria-live="polite" aria-atomic="true"></p>
+
         <h2>ブロック詳細情報</h2>
         <p id="description">説明文が表示されます。</p>
     </div>
