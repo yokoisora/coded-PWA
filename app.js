@@ -6,7 +6,7 @@ let isMoving = false;
 let intervalId = null; 
 let prevRelativeDir = null; 
 let prevBlockName = null; 
-let prevDistance = null; // ★ 新規: 前回の距離を保持
+let prevDistance = null; // 前回の距離を保持
 
 // 効果音の音声ファイルを指定
 const notificationSound = new Audio('ping_1.mp3');
@@ -153,7 +153,7 @@ function getPositionAndSend() {
       const relativeDir = convertToRelativeDirection(directionEnglish, heading); 
       const relativeAngle = getRelativeAngleByInstall(heading, install); 
       
-      // 案内表示の更新 (常に最新を表示)
+      // 案内表示の更新 (画面上の文字は常に最新を表示)
       resultText.textContent =
           `${relativeDir}に${blockName}があります（約${distance.toFixed(1)}m）`;
 
@@ -162,15 +162,14 @@ function getPositionAndSend() {
 
       if (notificationDistance === 0) {
           // 0: 常に更新モード (距離による制限なし)
-          // 方向や名前が変わったら通知
           shouldNotify = (relativeDir !== prevRelativeDir || blockName !== prevBlockName);
       } else {
           // 距離制限モード
           
+          // ★ 設定距離「以内」にいる場合のみ通知判定を行う
           if (distance <= notificationDistance) {
-              // ★ 設定距離「以内」にいる場合
               
-              // 1. 距離が前回から 1.0m 以上変化したか？ (GPSのブレを考慮しつつ移動を検知)
+              // 1. 距離が前回から 1.0m 以上変化したか？ (移動を検知)
               const distanceChanged = prevDistance === null || Math.abs(distance - prevDistance) >= 1.0;
               
               // 2. 方向や名前が変わったか？
@@ -180,20 +179,15 @@ function getPositionAndSend() {
               if (distanceChanged || infoChanged) {
                   shouldNotify = true;
               }
-          } else {
-              // 設定距離「外」にいる場合
-              // 従来通り、方向やブロック名が変わった時だけ通知（距離変化だけでは通知しない）
-              if (relativeDir !== prevRelativeDir || blockName !== prevBlockName) {
-                  shouldNotify = true;
-              }
-          }
+          } 
+          // ★ 設定距離「外」の場合は何もしない (shouldNotify は false のまま)
       }
 
-      // 2. 音とメッセージの取得・表示
+      // 2. 音とメッセージの取得・表示 (通知対象の場合のみ実行)
       if (shouldNotify) {
           notificationSound.play();
           
-          // get_message_nc.pyの呼び出し (通知時のみ実行)
+          // get_message_nc.pyの呼び出し
           const messageUrl = `https://codedbb.com/tenji/get_message_nc.py?code=${blockCode}&angle=${relativeAngle}`;
           console.log("→ fetch messageUrl:", messageUrl);
           
@@ -211,7 +205,7 @@ function getPositionAndSend() {
       // ★★★ 状態の保存 ★★★
       prevRelativeDir = relativeDir;
       prevBlockName = blockName;
-      prevDistance = distance; // 今回の距離を保存
+      prevDistance = distance; 
 
     } catch (err) {
       resultText.textContent = "通信エラー";
