@@ -21,20 +21,20 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 80vh; /* 画面の高さに応じて中央に配置 */
+            height: 80vh;
             text-align: center;
         }
 
-        /* ★ 開始ボタンのスタイル調整 ★ */
+        /* 開始ボタンのスタイル */
         #startButton {
-            background-color: #007aff; /* iOSの標準的な青 */
+            background-color: #007aff;
             color: white;
             border: none;
-            border-radius: 12px; /* 丸みのある角 */
-            padding: 25px 0; /* 上下のパディングを大きく */
-            width: 90vw; /* 画面幅の90%を使用 */
-            max-width: 400px; /* 最大幅を設定 */
-            font-size: 28px; /* フォントサイズを大きく */
+            border-radius: 12px;
+            padding: 25px 0;
+            width: 90vw;
+            max-width: 400px;
+            font-size: 28px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -65,21 +65,28 @@
             line-height: 1.6;
         }
         
-        /* 緯度経度ステータス情報 */
         #status {
             font-size: 14px;
             color: #666;
             margin-bottom: 15px;
         }
         
-        /* メイン案内情報 */
+        /* 案内情報（方向・名前） */
         #result {
             font-size: 20px;
             font-weight: bold;
-            color: #d9534f; /* 目立つ色 */
+            color: #d9534f;
+            margin-bottom: 5px;
+        }
+
+        /* 距離表示用（別枠） */
+        #distance-display {
+            font-size: 18px;
+            font-weight: normal;
+            color: #555;
+            margin-top: 0;
         }
         
-        /* 通知設定UIのスタイル */
         .setting-control {
             margin-bottom: 20px;
             padding: 10px;
@@ -102,7 +109,6 @@
             font-size: 16px;
         }
     </style>
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div id="start-screen">
@@ -113,7 +119,6 @@
     <div id="main-content" style="display: none;">
         <h1>現在位置と案内</h1> 
         
-        <!-- ★ 通知距離設定UIの追加 ★ -->
         <div class="setting-control">
             <label for="notification-distance">通知タイミング設定 (m)</label>
             <select id="notification-distance">
@@ -127,11 +132,14 @@
         </div>
         
         <p id="status">位置取得中...</p> 
+        <!-- 方向と名前のみ（TalkBackが監視する要素） -->
         <p id="result" aria-live="polite" aria-atomic="true"></p> 
+        <!-- 距離のみ（ここが更新されても#resultは影響を受けない） -->
+        <p id="distance-display"></p>
+
         <h2>ブロック詳細情報</h2>
         <p id="description" aria-live="polite" aria-atomic="true">説明文が表示されます。</p>
     </div>
-
 
     <script src="app.js"></script> 
 </body>
