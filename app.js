@@ -18,7 +18,7 @@ let mainContent;
 let statusText; 
 let descriptionText; 
 let resultText; 
-let distanceDisplay; // 距離表示用の要素を追加
+let distanceDisplay; 
 let notificationDistanceSelect; 
 
 // ページがロードされた後に要素を取得する初期化関数
@@ -29,7 +29,7 @@ function initializeDOM() {
     statusText = document.getElementById('status'); 
     descriptionText = document.getElementById('description'); 
     resultText = document.getElementById('result'); 
-    distanceDisplay = document.getElementById('distance-display'); // 距離表示用
+    distanceDisplay = document.getElementById('distance-display'); 
     notificationDistanceSelect = document.getElementById('notification-distance'); 
 
     if (!statusText || !resultText || !startButton || !distanceDisplay || !notificationDistanceSelect) {
@@ -113,15 +113,30 @@ async function getPositionAndSend() {
       const relativeDir = convertToRelativeDirection(directionEnglish, heading); 
       const relativeAngle = getRelativeAngleByInstall(heading, install); 
       
-      // --- 表示の更新ロジック ---
-      
-      // 1. 方向と名前が変わった場合のみ #result を更新（TalkBackの再読み上げ防止）
       const infoChanged = relativeDir !== prevRelativeDir || blockName !== prevBlockName;
-      if (infoChanged) {
-          resultText.textContent = `${relativeDir}に${blockName}があります`;
+      
+      // --- 表示の更新ロジック（赤文字部分の制限追加） ---
+      
+      // 案内を更新すべき範囲にいるかどうかの判定
+      const isInRange = (notificationDistance === 0 || distance <= notificationDistance);
+
+      if (isInRange) {
+          // 範囲内の場合：情報の変化があれば赤文字を更新
+          if (infoChanged) {
+              resultText.textContent = `${relativeDir}に${blockName}があります`;
+          }
+      } else {
+          // 範囲外の場合：情報を表示せず、待機状態にする
+          if (resultText.textContent !== "範囲内に点字ブロックはありません") {
+              resultText.textContent = "範囲内に点字ブロックはありません";
+              descriptionText.textContent = "ブロックに近づくと案内が表示されます。";
+              // 範囲外に出たときに情報をリセットすることで、次に範囲に入った瞬間に必ず更新されるようにする
+              prevRelativeDir = null;
+              prevBlockName = null;
+          }
       }
 
-      // 2. 距離は常に最新を表示（別要素なので #result の aria-live に影響しない）
+      // 距離表示は常に最新を表示（ユーザーが近づいていることを確認できるようにするため）
       distanceDisplay.textContent = `（約${distance.toFixed(1)}m）`;
 
       // --- 通知/音声更新ロジック ---
