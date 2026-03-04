@@ -6,7 +6,7 @@ let isMoving = false;
 let intervalId = null; 
 let prevRelativeDir = null; 
 let prevBlockName = null; 
-let prevDistance = null; // 前回の距離を保持
+let prevDistance = null;
 
 // 効果音の音声ファイルを指定
 const notificationSound = new Audio('ping_1.mp3');
@@ -18,6 +18,7 @@ let mainContent;
 let statusText; 
 let descriptionText; 
 let resultText; 
+let distanceDisplay; // 距離表示用の要素を追加
 let notificationDistanceSelect; 
 
 // ページがロードされた後に要素を取得する初期化関数
@@ -28,11 +29,11 @@ function initializeDOM() {
     statusText = document.getElementById('status'); 
     descriptionText = document.getElementById('description'); 
     resultText = document.getElementById('result'); 
+    distanceDisplay = document.getElementById('distance-display'); // 距離表示用
     notificationDistanceSelect = document.getElementById('notification-distance'); 
 
-    if (!statusText || !resultText || !startButton || !notificationDistanceSelect) {
+    if (!statusText || !resultText || !startButton || !distanceDisplay || !notificationDistanceSelect) {
         console.error("DOM要素の初期化に失敗しました。");
-        if (document.body) document.body.textContent = "初期化エラー: 必須要素が見つかりません。";
         return false;
     }
     return true;
@@ -41,8 +42,6 @@ function initializeDOM() {
 // デバイスの向き情報（コンパス）を取得
 const handleDeviceOrientation = (event) => {
   let alpha = event.alpha;
-  let angle = window.orientation || 0;
-  
   if (alpha !== null) {
       currentHeading = (360 - alpha) % 360;
   }
@@ -60,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (permissionState === 'granted') {
                             startApp();
                         } else {
-                            statusText.textContent = 'コンパス機能を使用するには、設定で権限を許可してください。';
+                            statusText.textContent = '権限を許可してください。';
                         }
                     })
                     .catch(console.error);
@@ -71,185 +70,112 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-// アプリ起動関数
 function startApp() {
     startScreen.style.display = 'none';
     mainContent.style.display = 'block';
-
     window.addEventListener('deviceorientation', handleDeviceOrientation);
-    window.addEventListener('devicemotion', handleDeviceMotion);
-    
     getPositionAndSend(); 
     intervalId = setInterval(getPositionAndSend, 5000);
 }
 
-// デバイスの動き情報（加速度）を取得
-const handleDeviceMotion = (event) => {
-  const acceleration = event.accelerationIncludingGravity;
-  const threshold = 0.5;
-  if (Math.abs(acceleration.x) > threshold || Math.abs(acceleration.y) > threshold || Math.abs(acceleration.z) > threshold) {
-    isMoving = true;
-  } else {
-    isMoving = false;
-  }
-};
+async function getPositionAndSend() {
+  if (!navigator.geolocation || currentHeading === null) return;
 
-function getPositionAndSend() {
-  if (!navigator.geolocation) {
-    if (statusText) statusText.textContent = "位置情報に非対応です。";
-    return;
-  }
-  
-  if (currentHeading === null) {
-      if (statusText) statusText.textContent = "位置情報とコンパスを調整中...";
-      return;
-  }
-
-  // 設定された通知距離を取得 (メートル)
   const notificationDistance = parseFloat(notificationDistanceSelect.value);
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
-
-    let heading = currentHeading;
+    const heading = currentHeading;
     
     const headingDirection = getHeadingDirection8(heading);
-    if (statusText) statusText.textContent = `緯度: ${lat.toFixed(6)}, 経度: ${lng.toFixed(6)}（進行方向: ${headingDirection}）`;
+    statusText.textContent = `緯度: ${lat.toFixed(6)}, 経度: ${lng.toFixed(6)}（進行方向: ${headingDirection}）`;
 
-    prevLat = lat;
-    prevLng = lng;
-    prevHeading = heading;
-
-    // 1. get_near_block_nc.pyの呼び出し
     const nearBlockUrl = `https://codedbb.com/tenji/get_near_block_nc.py?lat=${lat}&lng=${lng}&mode=message`;
-    console.log("→ fetch nearBlockUrl:", nearBlockUrl);
 
     try {
       const res = await fetch(nearBlockUrl);
-      
-      if (!res.ok) {
-          resultText.textContent = `ブロック取得エラー: サーバーエラー (${res.status})`;
-          descriptionText.textContent = "サーバーとの通信に失敗しました。";
-          console.error(`get_near_block_nc.py Error response status ${res.status}`);
-          return;
-      }
+      if (!res.ok) return;
 
       const data = await res.json();
-      
       if (data.error) {
            resultText.textContent = data.error;
-           descriptionText.textContent = "ブロック情報がありません。";
+           distanceDisplay.textContent = "";
            return;
       }
 
       const directionEnglish = data.direction; 
       const blockName = data.name;
-      const distance = data.distance; // 現在の距離
+      const distance = data.distance; 
       const blockCode = data.code;     
       const install = data.install;    
 
       const relativeDir = convertToRelativeDirection(directionEnglish, heading); 
       const relativeAngle = getRelativeAngleByInstall(heading, install); 
       
-      // 案内表示の更新 (画面上の文字は常に最新を表示)
-      resultText.textContent =
-          `${relativeDir}に${blockName}があります（約${distance.toFixed(1)}m）`;
+      // --- 表示の更新ロジック ---
+      
+      // 1. 方向と名前が変わった場合のみ #result を更新（TalkBackの再読み上げ防止）
+      const infoChanged = relativeDir !== prevRelativeDir || blockName !== prevBlockName;
+      if (infoChanged) {
+          resultText.textContent = `${relativeDir}に${blockName}があります`;
+      }
 
-      // ★★★ 通知/音/メッセージ更新ロジック (修正版) ★★★
+      // 2. 距離は常に最新を表示（別要素なので #result の aria-live に影響しない）
+      distanceDisplay.textContent = `（約${distance.toFixed(1)}m）`;
+
+      // --- 通知/音声更新ロジック ---
       let shouldNotify = false;
 
       if (notificationDistance === 0) {
-          // 0: 常に更新モード (距離による制限なし)
-          shouldNotify = (relativeDir !== prevRelativeDir || blockName !== prevBlockName);
-      } else {
-          // 距離制限モード
-          
-          // ★ 設定距離「以内」にいる場合のみ通知判定を行う
-          if (distance <= notificationDistance) {
-              
-              // 1. 距離が前回から 1.0m 以上変化したか？ (移動を検知)
-              const distanceChanged = prevDistance === null || Math.abs(distance - prevDistance) >= 1.0;
-              
-              // 2. 方向や名前が変わったか？
-              const infoChanged = relativeDir !== prevRelativeDir || blockName !== prevBlockName;
-
-              // どちらかであれば通知する
-              if (distanceChanged || infoChanged) {
-                  shouldNotify = true;
-              }
-          } 
-          // ★ 設定距離「外」の場合は何もしない (shouldNotify は false のまま)
+          shouldNotify = infoChanged;
+      } else if (distance <= notificationDistance) {
+          // 距離が前回から 1.0m 以上変化、または情報自体が変化したか
+          const distanceChanged = prevDistance === null || Math.abs(distance - prevDistance) >= 1.0;
+          if (distanceChanged || infoChanged) {
+              shouldNotify = true;
+          }
       }
 
-      // 2. 音とメッセージの取得・表示 (通知対象の場合のみ実行)
       if (shouldNotify) {
           notificationSound.play();
           
-          // get_message_nc.pyの呼び出し
           const messageUrl = `https://codedbb.com/tenji/get_message_nc.py?code=${blockCode}&angle=${relativeAngle}`;
-          console.log("→ fetch messageUrl:", messageUrl);
-          
           const messageRes = await fetch(messageUrl);
           const message = await messageRes.text(); 
           
-          if (!messageRes.ok) {
-              descriptionText.textContent = `メッセージ取得エラー (${messageRes.status})`;
-              console.error(`get_message_nc.py Error response status ${messageRes.status}:`, message);
-          } else {
+          if (messageRes.ok) {
               descriptionText.textContent = message.trim();
           }
       }
       
-      // ★★★ 状態の保存 ★★★
+      // 状態の保存
       prevRelativeDir = relativeDir;
       prevBlockName = blockName;
       prevDistance = distance; 
 
     } catch (err) {
-      resultText.textContent = "通信エラー";
-      descriptionText.textContent = "サーバーとの通信に失敗しました。詳細をコンソールで確認してください。";
       console.error("APIエラー:", err);
     }
-  }, (err) => {
-    if (statusText) statusText.textContent = `位置情報取得失敗: ${err.message}`;
-  }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }); 
+  }, null, { enableHighAccuracy: true }); 
 }
 
-
-/**
- * install値（0-11）と進行方向からangle（0-3）を決定する
- */
 function getRelativeAngleByInstall(heading, install) {
-  if (heading === null || install === undefined) return 0;
-  
   const installAngle = parseFloat(install) * 30;
   let angleDiff = (heading - installAngle + 360) % 360;
-  
-  if (angleDiff <= 45 || angleDiff > 315) return 0; // 正面
-  if (angleDiff <= 135) return 1; // 右
-  if (angleDiff <= 225) return 2; // 後方
-  if (angleDiff <= 315) return 3; // 左
-  
-  return 0;
+  if (angleDiff <= 45 || angleDiff > 315) return 0;
+  if (angleDiff <= 135) return 1;
+  if (angleDiff <= 225) return 2;
+  return 3;
 }
 
 function convertToRelativeDirection(targetDirection, heading) {
-  if (heading === null) return targetDirection;
-
-  // 英語の8方位文字列を角度にマッピング
   const directions = {
     "north": 0, "northeast": 45, "east": 90, "southeast": 135,
     "south": 180, "southwest": 225, "west": 270, "northwest": 315
   };
-
   const targetAngle = directions[targetDirection];
-  if (targetAngle === undefined) return targetDirection; 
-
   const angleDiff = (targetAngle - heading + 360) % 360;
-
-  // 角度差を基に日本語の相対方向を決定
   if (angleDiff < 22.5 || angleDiff >= 337.5) return "前";
   if (angleDiff < 67.5) return "右前";
   if (angleDiff < 112.5) return "右";
@@ -261,9 +187,6 @@ function convertToRelativeDirection(targetDirection, heading) {
 }
 
 function getHeadingDirection8(deg) {
-  if (deg === null) {
-      return "コンパスを調整中";
-  }
   if (deg < 22.5 || deg >= 337.5) return "北";
   if (deg < 67.5) return "北東";
   if (deg < 112.5) return "東";
